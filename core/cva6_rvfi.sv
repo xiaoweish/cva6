@@ -349,7 +349,8 @@ module cva6_rvfi
 
   `CONNECT_RVFI_FULL(1'b1, mstatus, csr.mstatus_extended)
 
-  `CONNECT_RVFI_FULL(1'b1, mstatush, '0)
+  bit [31:0] mstatush_q;
+    `CONNECT_RVFI_FULL(1'b1, mstatush, mstatush_q)
 
   `CONNECT_RVFI_FULL(1'b1, misa, IsaCode)
 

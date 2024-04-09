@@ -65,6 +65,8 @@ module ariane_testharness #(
   logic        init_done;
   logic [31:0] jtag_exit, dmi_exit;
   logic [31:0] rvfi_exit;
+  logic [31:0] tracer_exit;
+  logic [31:0] tandem_exit;
 
   logic        jtag_TCK;
   logic        jtag_TMS;
@@ -700,7 +702,7 @@ module ariane_testharness #(
     .rst_ni(rst_ni),
     .rvfi_i(rvfi_instr),
     .rvfi_csr_i(rvfi_csr),
-    .end_of_test_o(rvfi_exit)
+    .end_of_test_o(tracer_exit)
   );
 
 `ifdef SPIKE_TANDEM
@@ -713,11 +715,19 @@ module ariane_testharness #(
         .rst_ni,
         .clint_tick_i   ( rtc_i    ),
         .rvfi_i         ( rvfi_instr ),
-        .rvfi_csr_i     ( rvfi_csr )
+        .rvfi_csr_i     ( rvfi_csr ),
+        .end_of_test_o  ( tandem_exit )
     );
     initial begin
         $display("Running binary in tandem mode");
     end
+    always_ff @(posedge clk_i) begin
+        if (tandem_exit) begin
+            rvfi_exit <= tracer_exit;
+        end
+    end
+`else
+    assign rvfi_exit = tracer_exit;
 `endif
 
 `ifdef VERILATOR
