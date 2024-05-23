@@ -721,10 +721,27 @@ module ariane_testharness #(
     initial begin
         $display("Running binary in tandem mode");
     end
+
+    bit tandem_timeout_enable;
+    bit [31:0] tandem_timeout;
+    localparam TANDEM_TIMEOUT_THRESHOLD = 60;
+
+    // Tandem timeout logic
     always_ff @(posedge clk_i) begin
-        if (tandem_exit) begin
+        if(tandem_timeout > TANDEM_TIMEOUT_THRESHOLD)
+            tandem_timeout_enable <= 0;
+        else if (tracer_exit)
+            tandem_timeout_enable <= 1;
+
+        if (tandem_timeout_enable)
+            tandem_timeout <= tandem_timeout + 1;
+    end
+
+    always_ff @(posedge clk_i) begin
+        if (tandem_exit || (tandem_timeout > TANDEM_TIMEOUT_THRESHOLD)) begin
             rvfi_exit <= tracer_exit;
         end
+
     end
 `else
     assign rvfi_exit = tracer_exit;
