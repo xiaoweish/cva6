@@ -139,6 +139,7 @@ smoke:
       - DV_SIMULATORS:
         - "veri-testharness,spike"
         - "vcs-testharness,spike"
+        - "questa-testharness,spike"
         - "vcs-uvm,spike"
   script:
     - bash verif/regress/smoke-tests.sh
