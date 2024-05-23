@@ -192,33 +192,23 @@ COMMON_PLUS_ARGS = \
 	+elf_file=$(elf) \
         $(spike-yaml-plusarg) \
 	+tohost_addr=$(shell $$RISCV/bin/$(CV_SW_PREFIX)nm -B $(elf) | grep -w tohost | cut -d' ' -f1) \
-	+signature=$(elf).signature_output  +UVM_TESTNAME=uvmt_cva6_firmware_test_c
+	+signature=$(elf).signature_output +UVM_TESTNAME=uvmt_cva6_firmware_test_c \
+	$(spike-yaml-plusarg) \
 
 ifneq ($(UVM_VERBOSITY),)
 COMMON_PLUS_ARGS += +UVM_VERBOSITY=$(UVM_VERBOSITY)
 endif
 
 COMMON_RUN_UVM_FLAGS = \
-	-sv_lib $(SPIKE_INSTALL_DIR)/lib/libriscv \
-	-sv_lib $(SPIKE_INSTALL_DIR)/lib/libfesvr \
-	-sv_lib $(SPIKE_INSTALL_DIR)/lib/libdisasm \
-	++$(elf) \
-	+elf_file=$(elf) \
-	$(spike-yaml-plusarg) \
-	+tohost_addr=$(shell $$RISCV/bin/$(CV_SW_PREFIX)nm -B $(elf) | grep -w tohost | cut -d' ' -f1) \
-	+signature=$(elf).signature_output +UVM_TESTNAME=uvmt_cva6_firmware_test_c \
+	 +UVM_TESTNAME=uvmt_cva6_firmware_test_c \
 	+report_file=$(log).yaml +core_name=$(target)
 
-ifneq ($(UVM_VERBOSITY),)
-COMMON_PLUS_ARGS += +UVM_VERBOSITY=$(UVM_VERBOSITY)
-endif
-
-COMMON_RUN_FLAGS = \
+COMMON_RUN_ARGS = \
+	$(COMMON_PLUS_ARGS) $(issrun_opts) \
 	-sv_lib $(SPIKE_INSTALL_DIR)/lib/libcustomext \
 	-sv_lib $(SPIKE_INSTALL_DIR)/lib/libriscv \
 	-sv_lib $(SPIKE_INSTALL_DIR)/lib/libfesvr \
-	-sv_lib $(SPIKE_INSTALL_DIR)/lib/libdisasm \
-	$(COMMON_PLUS_ARGS)
+	-sv_lib $(SPIKE_INSTALL_DIR)/lib/libdisasm
 
 ALL_UVM_FLAGS   = -lca -sverilog +incdir+$(VCS_HOME)/etc/uvm/src \
 	  $(VCS_HOME)/etc/uvm/src/uvm_pkg.sv -ntb_opts uvm-1.2 -timescale=1ns/1ps \
@@ -247,9 +237,9 @@ ifneq ($(DEBUG),)               # If RTL DEBUG support requested
 endif
 
 ifneq ($(SPIKE_TANDEM),)
-COMMON_RUN_FLAGS += +scoreboard_enabled=1
+COMMON_RUN_ARGS += +scoreboard_enabled=1
 else
-COMMON_RUN_FLAGS += +scoreboard_enabled=0
+COMMON_RUN_ARGS += +scoreboard_enabled=0
 endif
 
 vcs_uvm_comp:
@@ -265,7 +255,7 @@ vcs_uvm_run: vcs_uvm_comp
 	$(if $(TRACE_FAST), unset VERDI_HOME ;) \
 	cd $(VCS_WORK_DIR)/ && \
 	$(VCS_WORK_DIR)/simv \
-	    $(COMMON_RUN_FLAGS) \
+	    $(COMMON_RUN_ARGS) \
 	    $(ALL_SIMV_UVM_FLAGS) \
 	    $(cov-run-opt) $(issrun_opts)
 
@@ -304,7 +294,7 @@ questa_uvm_comp:
 questa_uvm_run:
 	@echo "[QUESTA] Running Model"
 	vsim -64  \
-	  $(COMMON_RUN_FLAGS) \
+	  $(COMMON_RUN_ARGS) \
 	  -sv_lib $(QUESTASIM_HOME)/uvm-1.2/linux_x86_64/uvm_dpi \
 	  -c -do "run -all; " \
 	  -work $(VSIM_WORK_DIR) -t 1ns \
@@ -338,12 +328,7 @@ vcs_clean_all:
 vcs-testharness:
 	make -C $(path_var) vcs_build target=$(target) defines=$(subst +define+,,$(isscomp_opts))$(if $(spike-tandem),SPIKE_TANDEM=1)
 	$(path_var)/work-vcs/simv $(if $(VERDI), -verdi -do $(path_var)/util/init_testharness.do,) +permissive \
-	  +tohost_addr=$(shell $$RISCV/bin/${CV_SW_PREFIX}nm -B $(elf) | grep -w tohost | cut -d' ' -f1) \
-	  +elf_file=$(elf) +permissive-off ++$(elf) $(issrun_opts)  \
-	  $(if $(spike-tandem),-sv_lib $(SPIKE_INSTALL_DIR)/lib/libcustomext) \
-	  $(if $(spike-tandem),-sv_lib $(SPIKE_INSTALL_DIR)/lib/libriscv) \
-	  $(if $(spike-tandem),-sv_lib $(SPIKE_INSTALL_DIR)/lib/libdisasm) \
-	  -sv_lib $(SPIKE_INSTALL_DIR)/lib/libfesvr
+	    +permissive-off $(COMMON_RUN_ARGS)
 	# If present, move default waveform files to log directory.
 	# Keep track of target in waveform file name.
 	[ ! -f novas.vpd  ] || \
